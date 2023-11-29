@@ -5,7 +5,7 @@ package recws
 import (
 	"crypto/tls"
 	"errors"
-	"log"
+	"github.com/ethereum/go-ethereum/log"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -98,7 +98,7 @@ func (rc *RecConn) Shutdown(writeWait time.Duration) {
 	err := rc.WriteControl(websocket.CloseMessage, msg, time.Now().Add(writeWait))
 	if err != nil && err != websocket.ErrCloseSent {
 		// If close message could not be sent, then close without the handshake.
-		log.Printf("Shutdown: %v", err)
+		log.Error("Shutdown", "err", err)
 		rc.Close()
 	}
 }
@@ -315,7 +315,7 @@ func (rc *RecConn) Dial(urlStr string, reqHeader http.Header) {
 	urlStr, err := rc.parseURL(urlStr)
 
 	if err != nil {
-		log.Fatalf("Dial: %v", err)
+		log.Error("Dial", "err", err)
 	}
 
 	// Config
@@ -405,7 +405,7 @@ func (rc *RecConn) keepAlive() {
 			}
 
 			if err := rc.writeControlPingMessage(); err != nil {
-				log.Println(err)
+				log.Error("websocket ping failed", "err", err)
 			}
 
 			<-ticker.C
@@ -434,15 +434,15 @@ func (rc *RecConn) connect() {
 
 		if err == nil {
 			if !rc.getNonVerbose() {
-				log.Printf("Dial: connection was successfully established with %s\n", rc.url)
+				log.Debug("Dial: connection was successfully established", "url", rc.url)
 			}
 
 			if rc.hasSubscribeHandler() {
 				if err := rc.SubscribeHandler(); err != nil {
-					log.Fatalf("Dial: connect handler failed with %s", err.Error())
+					log.Error("Dial: connect handler failed", "err", err.Error())
 				}
 				if !rc.getNonVerbose() {
-					log.Printf("Dial: connect handler was successfully established with %s\n", rc.url)
+					log.Debug("Dial: connect handler was successfully established", "url", rc.url)
 				}
 			}
 
@@ -454,8 +454,8 @@ func (rc *RecConn) connect() {
 		}
 
 		if !rc.getNonVerbose() {
-			log.Println(err)
-			log.Println("Dial: will try again in", nextItvl, "seconds.")
+			log.Error("Dial: connection failed", "url", rc.url)
+			log.Error("Dial: will try again in", nextItvl, "seconds.")
 		}
 
 		time.Sleep(nextItvl)
